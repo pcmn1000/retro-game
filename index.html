@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>スーパーランナー - モバイルプラットフォーマー</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+    <!-- タイトル画面 -->
+    <div id="title-screen">
+        <div class="title-content">
+            <h1><img src="enemy.png" alt="🌍" class="title-icon">スーパーランナー</h1>
+            <p>コインを集めてゴールを目指せ！</p>
+            <button id="start-btn" onclick="startGame()">ゲームスタート</button>
+            <div class="instructions">
+                <p>📱 操作方法</p>
+                <p>← → : 移動 ｜ ▲ : ジャンプ（2回押しで二段ジャンプ）</p>
+                <p>敵を踏んで倒そう！</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ゲーム画面 -->
+    <div id="game-container" style="display:none;">
+        <!-- HUD -->
+        <div id="hud">
+            <div id="score">🪙 0</div>
+            <div id="lives">❤️ 3</div>
+            <div id="level">WORLD 1-1</div>
+        </div>
+
+        <!-- ゲームキャンバス -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- モバイルコントロール -->
+        <div id="controls">
+            <div id="dpad">
+                <button id="btn-left" class="ctrl-btn">◀</button>
+                <button id="btn-right" class="ctrl-btn">▶</button>
+            </div>
+            <div id="action-buttons">
+                <button id="btn-jump" class="ctrl-btn jump-btn">▲</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ゲームオーバー画面 -->
+    <div id="gameover-screen" style="display:none;">
+        <div class="title-content">
+            <h1>💀 ゲームオーバー</h1>
+            <p id="final-score">スコア: 0</p>
+            <button onclick="restartGame()">リトライ</button>
+        </div>
+    </div>
+
+    <!-- クリア画面 -->
+    <div id="clear-screen" style="display:none;">
+        <div class="title-content">
+            <h1>🎉 ステージクリア！</h1>
+            <p id="clear-score">スコア: 0</p>
+            <p id="clear-time">クリアタイム: 0秒</p>
+            <button onclick="nextLevel()">次のステージへ</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
