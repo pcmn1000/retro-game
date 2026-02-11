@@ -1843,23 +1843,33 @@ function updateWarpAnimation() {
     return true; // アニメーション中
 }
 
-function drawWarpPipeFront() {
-    if (!warpAnim || !warpAnim.warpPipe) return;
-    if (warpAnim.phase !== 'sink' && warpAnim.phase !== 'rise') return;
+function drawPipesFront() {
+    // 全パイプをプレイヤーより前面に再描画
+    for (const p of platforms) {
+        if (p.type !== 'pipe') continue;
+        const sx = p.x - camera.x;
+        const sy = p.y - camera.y;
+        if (sx + p.w < -10 || sx > canvas.width + 10) continue;
 
-    const p = warpAnim.warpPipe;
-    const sx = p.x - camera.x;
-    const sy = p.y - camera.y;
+        ctx.fillStyle = '#27ae60';
+        ctx.fillRect(sx, sy, p.w, p.h);
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillRect(sx - 4, sy, p.w + 8, 12);
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(sx + 4, sy + 12, 6, p.h - 12);
 
-    // パイプをプレイヤーの前面に再描画
-    ctx.fillStyle = '#27ae60';
-    ctx.fillRect(sx, sy, p.w, p.h);
-    // パイプの口
-    ctx.fillStyle = '#2ecc71';
-    ctx.fillRect(sx - 4, sy, p.w + 8, 12);
-    // ハイライト
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.fillRect(sx + 4, sy + 12, 6, p.h - 12);
+        // ワープ可能パイプの矢印インジケーター
+        if (p.warpTo || (inUnderground && p.isExit)) {
+            const blinkAlpha = 0.5 + Math.sin(animFrame * 0.08) * 0.5;
+            ctx.save();
+            ctx.globalAlpha = blinkAlpha;
+            ctx.fillStyle = '#ffcc00';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('▼', sx + p.w / 2, sy - 6);
+            ctx.restore();
+        }
+    }
 }
 
 function drawWarpOverlay() {
@@ -1914,7 +1924,7 @@ function gameLoop() {
     for (const e of enemies) e.draw();
     if (boss) boss.draw();
     player.draw();
-    drawWarpPipeFront();  // パイプをプレイヤーの前面に描画（sink/rise中）
+    drawPipesFront();     // パイプを常にプレイヤーの前面に描画
     drawParticles();
 
     // ワープオーバーレイ（暗転エフェクト）
