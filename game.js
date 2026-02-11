@@ -1812,7 +1812,11 @@ function updateWarpAnimation() {
                     a.phase = 'rise';
                     a.timer = 0;
                 } else {
-                    a.phase = 'done';
+                    // enter完了 — 即座に終了
+                    warpAnim = null;
+                    pipeWarpCooldown = 30;
+                    spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 15, '#27ae60');
+                    return false;
                 }
             }
             break;
@@ -1828,15 +1832,13 @@ function updateWarpAnimation() {
             player.vx = 0;
             player.vy = 0;
             if (a.timer >= 25) {
-                a.phase = 'done';
+                // rise完了 — 即座に終了（doneフェーズを挟まない）
+                warpAnim = null;
+                pipeWarpCooldown = 30;
+                spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 15, '#27ae60');
+                return false;
             }
             break;
-
-        case 'done':
-            warpAnim = null;
-            pipeWarpCooldown = 30;
-            spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 15, '#27ae60');
-            return false;
     }
     return true; // アニメーション中
 }
