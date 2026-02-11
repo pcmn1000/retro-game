@@ -317,6 +317,18 @@ html, body {
     background: rgba(233, 69, 96, 0.6);
 }
 
+.down-btn {
+    width: 55px;
+    height: 55px;
+    font-size: 1.2em;
+    border-color: rgba(39, 174, 96, 0.8);
+    background: rgba(39, 174, 96, 0.3);
+}
+
+.down-btn:active {
+    background: rgba(39, 174, 96, 0.6);
+}
+
 /* ===== レスポンシブ ===== */
 @media (max-height: 500px) {
     .ctrl-btn {

@@ -22,13 +22,16 @@ let currentLevel = 0;
 let startTime = 0;
 let animFrame = 0;
 let camera = { x: 0, y: 0 };
-let keys = { left: false, right: false, jump: false };
+let keys = { left: false, right: false, jump: false, down: false };
 let player, platforms, enemies, coins, decorations, goalFlag;
 let particles = [];
 let boss = null;
 let moonItems = [];
 let screenShake = 0;
 let playerNickname = 'PLAYER';
+let inUnderground = false;  // 地下エリア中か
+let savedOverworld = null;  // 地上の状態保存
+let pipeWarpCooldown = 0;   // ワープ連打防止
 let enemyImg = null;
 let enemyImgLoaded = false;
 
@@ -818,8 +821,8 @@ const LEVELS = [
             { x: 42, y: 6, w: 1, h: 1, type: 'question' },
 
             // パイプ
-            { x: 50, y: 10, w: 2, h: 2, type: 'pipe' },
-            { x: 70, y: 9, w: 2, h: 3, type: 'pipe' },
+            { x: 50, y: 10, w: 2, h: 2, type: 'pipe', warpTo: 'underground' },
+            { x: 70, y: 9, w: 2, h: 3, type: 'pipe', isExit: true },
 
             // 高台
             { x: 75, y: 7, w: 6, h: 1, type: 'brick' },
@@ -858,6 +861,31 @@ const LEVELS = [
         ],
         playerStart: { x: 3, y: 10 },
         goal: { x: 130, y: 4 },
+        // 地下ボーナスエリア
+        underground: {
+            width: 30, height: 10,
+            bgColor1: '#0a0a1a', bgColor2: '#111133',
+            platforms: [
+                { x: 0, y: 8, w: 30, h: 2, type: 'ground' },
+                { x: 0, y: 0, w: 30, h: 1, type: 'brick' },
+                { x: 0, y: 1, w: 1, h: 7, type: 'brick' },
+                { x: 29, y: 1, w: 1, h: 7, type: 'brick' },
+                { x: 4, y: 5, w: 8, h: 1, type: 'brick' },
+                { x: 16, y: 5, w: 8, h: 1, type: 'brick' },
+            ],
+            coins: [
+                { x: 4, y: 3 }, { x: 5, y: 3 }, { x: 6, y: 3 }, { x: 7, y: 3 },
+                { x: 8, y: 3 }, { x: 9, y: 3 }, { x: 10, y: 3 }, { x: 11, y: 3 },
+                { x: 4, y: 6 }, { x: 5, y: 6 }, { x: 6, y: 6 }, { x: 7, y: 6 },
+                { x: 8, y: 6 }, { x: 9, y: 6 }, { x: 10, y: 6 }, { x: 11, y: 6 },
+                { x: 16, y: 3 }, { x: 17, y: 3 }, { x: 18, y: 3 }, { x: 19, y: 3 },
+                { x: 20, y: 3 }, { x: 21, y: 3 }, { x: 22, y: 3 }, { x: 23, y: 3 },
+                { x: 16, y: 6 }, { x: 17, y: 6 }, { x: 18, y: 6 }, { x: 19, y: 6 },
+                { x: 20, y: 6 }, { x: 21, y: 6 }, { x: 22, y: 6 }, { x: 23, y: 6 },
+            ],
+            exitPipe: { x: 26, y: 6, w: 2, h: 2 },
+            playerStart: { x: 2, y: 6 },
+        },
     },
     // Level 2 - 地下ステージ
     {
@@ -884,8 +912,8 @@ const LEVELS = [
             { x: 25, y: 10, w: 2, h: 1, type: 'brick' },
 
             // パイプゾーン
-            { x: 35, y: 10, w: 2, h: 2, type: 'pipe' },
-            { x: 45, y: 8, w: 2, h: 4, type: 'pipe' },
+            { x: 35, y: 10, w: 2, h: 2, type: 'pipe', warpTo: 'underground' },
+            { x: 45, y: 8, w: 2, h: 4, type: 'pipe', isExit: true },
             { x: 55, y: 9, w: 2, h: 3, type: 'pipe' },
 
             // 中間エリア足場
@@ -940,6 +968,36 @@ const LEVELS = [
         ],
         playerStart: { x: 3, y: 10 },
         goal: { x: 143, y: 4 },
+        // 地下ボーナスエリア
+        underground: {
+            width: 28, height: 10,
+            bgColor1: '#0a0a1a', bgColor2: '#111133',
+            platforms: [
+                { x: 0, y: 8, w: 28, h: 2, type: 'ground' },
+                { x: 0, y: 0, w: 28, h: 1, type: 'brick' },
+                { x: 0, y: 1, w: 1, h: 7, type: 'brick' },
+                { x: 27, y: 1, w: 1, h: 7, type: 'brick' },
+                { x: 3, y: 5, w: 6, h: 1, type: 'brick' },
+                { x: 11, y: 3, w: 6, h: 1, type: 'brick' },
+                { x: 19, y: 5, w: 6, h: 1, type: 'brick' },
+            ],
+            coins: [
+                { x: 3, y: 3 }, { x: 4, y: 3 }, { x: 5, y: 3 }, { x: 6, y: 3 },
+                { x: 7, y: 3 }, { x: 8, y: 3 },
+                { x: 3, y: 6 }, { x: 4, y: 6 }, { x: 5, y: 6 }, { x: 6, y: 6 },
+                { x: 7, y: 6 }, { x: 8, y: 6 },
+                { x: 11, y: 1 }, { x: 12, y: 1 }, { x: 13, y: 1 }, { x: 14, y: 1 },
+                { x: 15, y: 1 }, { x: 16, y: 1 },
+                { x: 11, y: 5 }, { x: 12, y: 5 }, { x: 13, y: 5 }, { x: 14, y: 5 },
+                { x: 15, y: 5 }, { x: 16, y: 5 },
+                { x: 19, y: 3 }, { x: 20, y: 3 }, { x: 21, y: 3 }, { x: 22, y: 3 },
+                { x: 23, y: 3 }, { x: 24, y: 3 },
+                { x: 19, y: 6 }, { x: 20, y: 6 }, { x: 21, y: 6 }, { x: 22, y: 6 },
+                { x: 23, y: 6 }, { x: 24, y: 6 },
+            ],
+            exitPipe: { x: 25, y: 6, w: 2, h: 2 },
+            playerStart: { x: 2, y: 6 },
+        },
     },
     // Level 3 - 空中ステージ
     {
@@ -1052,6 +1110,8 @@ function loadLevel(index) {
         h: p.h * TILE,
         type: p.type,
         hit: false,
+        warpTo: p.warpTo || null,
+        isExit: p.isExit || false,
     }));
 
     // 敵
@@ -1088,10 +1148,17 @@ function loadLevel(index) {
     camera = { x: 0, y: 0 };
     particles = [];
     moonItems = [];
+    inUnderground = false;
+    savedOverworld = null;
+    pipeWarpCooldown = 0;
     startTime = Date.now();
 }
 
 function getLevelHeight() {
+    if (inUnderground) {
+        const ug = LEVELS[currentLevel].underground;
+        return ug ? ug.height * TILE : LEVELS[currentLevel].height * TILE;
+    }
     return LEVELS[currentLevel].height * TILE;
 }
 
@@ -1124,10 +1191,18 @@ function generateDecorations(lvl) {
 // ============================================================
 function drawBackground() {
     const lvl = LEVELS[currentLevel];
+    let bg1, bg2;
+    if (inUnderground && lvl.underground) {
+        bg1 = lvl.underground.bgColor1;
+        bg2 = lvl.underground.bgColor2;
+    } else {
+        bg1 = lvl.bgColor1;
+        bg2 = lvl.bgColor2;
+    }
     // グラデーション背景
     const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, lvl.bgColor1);
-    grad.addColorStop(1, lvl.bgColor2);
+    grad.addColorStop(0, bg1);
+    grad.addColorStop(1, bg2);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
@@ -1231,6 +1306,17 @@ function drawPlatforms() {
                 // ハイライト
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
                 ctx.fillRect(sx + 4, sy + 12, 6, p.h - 12);
+                // ワープ可能パイプの矢印インジケーター
+                if (p.warpTo || (inUnderground && p.isExit)) {
+                    const blinkAlpha = 0.5 + Math.sin(animFrame * 0.08) * 0.5;
+                    ctx.save();
+                    ctx.globalAlpha = blinkAlpha;
+                    ctx.fillStyle = '#ffcc00';
+                    ctx.font = 'bold 16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('▼', sx + p.w / 2, sy - 6);
+                    ctx.restore();
+                }
                 break;
         }
     }
@@ -1471,6 +1557,151 @@ function updateHUD() {
     document.getElementById('lives').textContent = '❤️ ' + lives;
     const lvl = LEVELS[currentLevel];
     document.getElementById('level').textContent = (lvl && lvl.isBoss) ? '⚔️ BOSS' : 'WORLD 1-' + (currentLevel + 1);
+    if (inUnderground) {
+        document.getElementById('level').textContent += ' ★BONUS';
+    }
+}
+
+// ============================================================
+// パイプワープシステム
+// ============================================================
+function checkPipeWarp() {
+    if (pipeWarpCooldown > 0) {
+        pipeWarpCooldown--;
+        return;
+    }
+    if (!keys.down || !player.onGround) return;
+
+    if (inUnderground) {
+        // 地下にいる → 出口パイプを探す
+        for (const p of platforms) {
+            if (p.type === 'pipe' && p.isExit) {
+                // プレイヤーがパイプの上にいるか
+                if (player.x + player.w > p.x && player.x < p.x + p.w &&
+                    Math.abs((player.y + player.h) - p.y) < 8) {
+                    exitUnderground();
+                    return;
+                }
+            }
+        }
+    } else {
+        // 地上にいる → ワープパイプを探す
+        for (const p of platforms) {
+            if (p.type === 'pipe' && p.warpTo === 'underground') {
+                if (player.x + player.w > p.x && player.x < p.x + p.w &&
+                    Math.abs((player.y + player.h) - p.y) < 8) {
+                    enterUnderground();
+                    return;
+                }
+            }
+        }
+    }
+}
+
+function enterUnderground() {
+    const lvl = LEVELS[currentLevel];
+    if (!lvl.underground) return;
+
+    // 地上の状態を保存
+    savedOverworld = {
+        platforms: platforms,
+        enemies: enemies,
+        coins: coins,
+        goalFlag: goalFlag,
+        boss: boss,
+        decorations: decorations,
+        moonItems: moonItems,
+        camera: { ...camera },
+        playerX: player.x,
+        playerY: player.y,
+    };
+
+    const ug = lvl.underground;
+
+    // 地下エリアのプラットフォーム
+    platforms = ug.platforms.map(p => ({
+        x: p.x * TILE,
+        y: p.y * TILE,
+        w: p.w * TILE,
+        h: p.h * TILE,
+        type: p.type,
+        hit: false,
+    }));
+
+    // 出口パイプ追加
+    if (ug.exitPipe) {
+        platforms.push({
+            x: ug.exitPipe.x * TILE,
+            y: ug.exitPipe.y * TILE,
+            w: ug.exitPipe.w * TILE,
+            h: ug.exitPipe.h * TILE,
+            type: 'pipe',
+            isExit: true,
+        });
+    }
+
+    // コイン
+    coins = ug.coins.map(c => new Coin(c.x * TILE, c.y * TILE));
+
+    // 地下には敵なし
+    enemies = [];
+    goalFlag = null;
+    boss = null;
+    moonItems = [];
+    decorations = [];
+
+    // プレイヤーを地下入口に
+    player.x = ug.playerStart.x * TILE;
+    player.y = ug.playerStart.y * TILE;
+    player.vx = 0;
+    player.vy = 0;
+
+    camera = { x: 0, y: 0 };
+    particles = [];
+    inUnderground = true;
+    pipeWarpCooldown = 30;
+
+    spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 15, '#27ae60');
+    updateHUD();
+}
+
+function exitUnderground() {
+    if (!savedOverworld) return;
+
+    // 地上の状態を復元
+    platforms = savedOverworld.platforms;
+    enemies = savedOverworld.enemies;
+    // コインは地上のものを復元（地下で取ったコインのスコアは維持）
+    coins = savedOverworld.coins;
+    goalFlag = savedOverworld.goalFlag;
+    boss = savedOverworld.boss;
+    decorations = savedOverworld.decorations;
+    moonItems = savedOverworld.moonItems;
+
+    // 出口パイプ（isExit: true）の位置にプレイヤーを戻す
+    let exitX = savedOverworld.playerX;
+    let exitY = savedOverworld.playerY;
+    for (const p of platforms) {
+        if (p.type === 'pipe' && p.isExit) {
+            exitX = p.x + (p.w - player.w) / 2;
+            exitY = p.y - player.h;
+            break;
+        }
+    }
+
+    player.x = exitX;
+    player.y = exitY;
+    player.vx = 0;
+    player.vy = 0;
+
+    camera = savedOverworld.camera;
+    particles = [];
+    inUnderground = false;
+    savedOverworld = null;
+    pipeWarpCooldown = 30;
+
+    spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 15, '#27ae60');
+    updateHUD();
 }
 
 // ============================================================
@@ -1488,6 +1719,7 @@ function gameLoop() {
     if (boss) boss.update();
     updateParticles();
     checkCollisions();
+    checkPipeWarp();
     updateCamera();
 
     // 月アイテム更新
@@ -1548,11 +1780,24 @@ function startGame() {
 }
 
 function respawnPlayer() {
+    // 地下で死んだ場合は地上に戻す
+    if (inUnderground && savedOverworld) {
+        platforms = savedOverworld.platforms;
+        enemies = savedOverworld.enemies;
+        coins = savedOverworld.coins;
+        goalFlag = savedOverworld.goalFlag;
+        boss = savedOverworld.boss;
+        decorations = savedOverworld.decorations;
+        moonItems = savedOverworld.moonItems;
+        inUnderground = false;
+        savedOverworld = null;
+    }
     const lvl = LEVELS[currentLevel];
     player = new Player(lvl.playerStart.x * TILE, lvl.playerStart.y * TILE);
     player.invincible = INVINCIBLE_TIME;
     particles = [];
     camera = { x: 0, y: 0 };
+    pipeWarpCooldown = 0;
     updateHUD();
 }
 
@@ -1626,6 +1871,7 @@ function setupTouchControls() {
     const btnLeft = document.getElementById('btn-left');
     const btnRight = document.getElementById('btn-right');
     const btnJump = document.getElementById('btn-jump');
+    const btnDown = document.getElementById('btn-down');
 
     // 左ボタン
     btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; });
@@ -1642,6 +1888,11 @@ function setupTouchControls() {
     btnJump.addEventListener('touchend', (e) => { e.preventDefault(); keys.jump = false; });
     btnJump.addEventListener('touchcancel', () => keys.jump = false);
 
+    // 下ボタン
+    btnDown.addEventListener('touchstart', (e) => { e.preventDefault(); keys.down = true; });
+    btnDown.addEventListener('touchend', (e) => { e.preventDefault(); keys.down = false; });
+    btnDown.addEventListener('touchcancel', () => keys.down = false);
+
     // マウスでもボタンが動くように (デスクトップテスト用)
     btnLeft.addEventListener('mousedown', () => keys.left = true);
     btnLeft.addEventListener('mouseup', () => keys.left = false);
@@ -1654,6 +1905,10 @@ function setupTouchControls() {
     btnJump.addEventListener('mousedown', () => keys.jump = true);
     btnJump.addEventListener('mouseup', () => keys.jump = false);
     btnJump.addEventListener('mouseleave', () => keys.jump = false);
+
+    btnDown.addEventListener('mousedown', () => keys.down = true);
+    btnDown.addEventListener('mouseup', () => keys.down = false);
+    btnDown.addEventListener('mouseleave', () => keys.down = false);
 }
 
 // --- キーボード操作 (PCデバッグ用) ---
@@ -1663,6 +1918,7 @@ function setupKeyboardControls() {
             case 'ArrowLeft': case 'a': keys.left = true; break;
             case 'ArrowRight': case 'd': keys.right = true; break;
             case 'ArrowUp': case 'w': case ' ': keys.jump = true; e.preventDefault(); break;
+            case 'ArrowDown': case 's': keys.down = true; break;
         }
     });
     window.addEventListener('keyup', (e) => {
@@ -1670,6 +1926,7 @@ function setupKeyboardControls() {
             case 'ArrowLeft': case 'a': keys.left = false; break;
             case 'ArrowRight': case 'd': keys.right = false; break;
             case 'ArrowUp': case 'w': case ' ': keys.jump = false; break;
+            case 'ArrowDown': case 's': keys.down = false; break;
         }
     });
 }
