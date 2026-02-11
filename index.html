@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>スーパーランナー - モバイルプラットフォーマー</title>
+    <title>SUPER RUNNER</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -11,15 +14,28 @@
 <body>
     <!-- タイトル画面 -->
     <div id="title-screen">
-        <div class="title-content">
-            <h1><img src="enemy.png" alt="🌍" class="title-icon">スーパーランナー</h1>
-            <p>コインを集めてゴールを目指せ！</p>
-            <button id="start-btn" onclick="startGame()">ゲームスタート</button>
-            <div class="instructions">
-                <p>📱 操作方法</p>
-                <p>← → : 移動 ｜ ▲ : ジャンプ（2回押しで二段ジャンプ）</p>
-                <p>敵を踏んで倒そう！</p>
+        <canvas id="stars-canvas"></canvas>
+        <div class="scanlines"></div>
+        <div class="title-content retro">
+            <div class="retro-title">
+                <div class="title-sub">★ RETRO ACTION ★</div>
+                <h1>SUPER<br>RUNNER</h1>
+                <div class="title-decoration">═══════════════════</div>
             </div>
+            <div class="retro-icon-row">
+                <img src="enemy.png" alt="🌍" class="title-icon">
+            </div>
+            <p class="retro-subtitle">- COLLECT COINS & REACH THE GOAL -</p>
+            <button id="start-btn" class="retro-btn" onclick="startGame()">
+                <span class="btn-blink">▶ START ◀</span>
+            </button>
+            <div class="instructions retro-instructions">
+                <p class="instructions-header">HOW TO PLAY</p>
+                <p>◀ ▶ : MOVE ｜ ▲ : JUMP</p>
+                <p>DOUBLE TAP ▲ FOR DOUBLE JUMP</p>
+                <p class="retro-hint">STOMP ENEMIES TO DEFEAT THEM!</p>
+            </div>
+            <p class="retro-copyright">© 2026 SUPER RUNNER PROJECT</p>
         </div>
     </div>
 

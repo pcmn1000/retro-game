@@ -1,5 +1,5 @@
 // ============================================================
-// スーパーランナー - モバイルプラットフォーマーゲーム
+// SUPER RUNNER - モバイルプラットフォーマーゲーム
 // ============================================================
 
 // ===== 定数 =====
@@ -1561,4 +1561,61 @@ window.addEventListener('DOMContentLoaded', () => {
     initCanvas();
     setupTouchControls();
     setupKeyboardControls();
+    initStarField();
 });
+
+// ============================================================
+// タイトル画面 - 星背景アニメーション
+// ============================================================
+function initStarField() {
+    const canvas = document.getElementById('stars-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    const stars = [];
+    const STAR_COUNT = 120;
+    const colors = ['#fff', '#ffcc00', '#00d4ff', '#e94560', '#88ff88'];
+    
+    for (let i = 0; i < STAR_COUNT; i++) {
+        stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2.5 + 0.5,
+            speed: Math.random() * 0.3 + 0.1,
+            twinkle: Math.random() * Math.PI * 2,
+            twinkleSpeed: Math.random() * 0.03 + 0.01,
+            color: colors[Math.floor(Math.random() * colors.length)]
+        });
+    }
+    
+    function drawStars() {
+        if (document.getElementById('title-screen').style.display === 'none') {
+            return; // タイトル非表示時は停止
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for (const s of stars) {
+            s.twinkle += s.twinkleSpeed;
+            s.y += s.speed;
+            if (s.y > canvas.height) {
+                s.y = -2;
+                s.x = Math.random() * canvas.width;
+            }
+            const alpha = 0.4 + Math.sin(s.twinkle) * 0.4;
+            ctx.beginPath();
+            ctx.fillStyle = s.color;
+            ctx.globalAlpha = Math.max(0.1, alpha);
+            ctx.fillRect(Math.floor(s.x), Math.floor(s.y), Math.ceil(s.size), Math.ceil(s.size));
+        }
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(drawStars);
+    }
+    requestAnimationFrame(drawStars);
+}
