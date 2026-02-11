@@ -26,6 +26,7 @@ let keys = { left: false, right: false, jump: false };
 let player, platforms, enemies, coins, decorations, goalFlag;
 let particles = [];
 let boss = null;
+let moonItems = [];
 let screenShake = 0;
 let enemyImg = null;
 let enemyImgLoaded = false;
@@ -121,7 +122,17 @@ class Player {
         }
 
         // 無敵時間
-        if (this.invincible > 0) this.invincible--;
+        if (this.invincible > 0) {
+            this.invincible--;
+            // 月アイテム由来の長時間無敵中はキラキラエフェクト
+            if (this.invincible > INVINCIBLE_TIME && animFrame % 5 === 0) {
+                spawnParticles(
+                    this.x + Math.random() * this.w,
+                    this.y + Math.random() * this.h,
+                    1, '#fffacd'
+                );
+            }
+        }
 
         // 画面外に落ちたら死亡
         if (this.y > getLevelHeight() + 100) {
@@ -157,11 +168,24 @@ class Player {
                 } else if (this.vy < 0) {
                     this.y = p.y + p.h;
                     this.vy = 0;
-                    // ? ブロックを叩いたとき
+                    // ? ブロックを叩いたとき → 月アイテム出現
                     if (p.type === 'question' && !p.hit) {
                         p.hit = true;
                         score += 100;
                         spawnParticles(p.x + p.w / 2, p.y, 8, '#ffd700');
+                        // 月アイテムを生成
+                        moonItems.push({
+                            x: p.x + p.w / 2 - 12,
+                            y: p.y - 28,
+                            w: 24,
+                            h: 24,
+                            vy: -4,
+                            rising: true,
+                            baseY: p.y - 32,
+                            timer: 0,
+                            collected: false,
+                            collectAnim: 0,
+                        });
                         updateHUD();
                     }
                 }
@@ -280,12 +304,31 @@ class Enemy {
         }
 
         this.y += this.vy;
+        let onPlatform = false;
         for (const p of platforms) {
             if (this.overlaps(p)) {
                 if (this.vy > 0) {
                     this.y = p.y - this.h;
                     this.vy = 0;
+                    onPlatform = true;
                 }
+            }
+        }
+
+        // 落下防止: 地面にいるとき、進行方向の先に足場がなければ方向転換
+        if (onPlatform) {
+            const checkX = this.vx > 0 ? this.x + this.w + 2 : this.x - 2;
+            const checkY = this.y + this.h + 4;
+            let hasFloor = false;
+            for (const p of platforms) {
+                if (checkX >= p.x && checkX <= p.x + p.w &&
+                    checkY >= p.y && checkY <= p.y + p.h) {
+                    hasFloor = true;
+                    break;
+                }
+            }
+            if (!hasFloor) {
+                this.vx *= -1;
             }
         }
 
@@ -982,6 +1025,7 @@ function loadLevel(index) {
 
     camera = { x: 0, y: 0 };
     particles = [];
+    moonItems = [];
     startTime = Date.now();
 }
 
@@ -1154,6 +1198,94 @@ function drawGoalFlag() {
 }
 
 // ============================================================
+// 月アイテムシステム
+// ============================================================
+function updateMoonItems() {
+    for (let i = moonItems.length - 1; i >= 0; i--) {
+        const m = moonItems[i];
+        if (m.collected) {
+            m.collectAnim++;
+            if (m.collectAnim >= 30) {
+                moonItems.splice(i, 1);
+            }
+            continue;
+        }
+        if (m.rising) {
+            m.y += m.vy;
+            m.vy += 0.15;
+            if (m.vy >= 0) {
+                m.rising = false;
+                m.baseY = m.y;
+            }
+        } else {
+            m.timer++;
+            m.y = m.baseY + Math.sin(m.timer * 0.04) * 4;
+        }
+    }
+}
+
+function checkMoonCollisions() {
+    if (!player || !player.alive) return;
+    for (const m of moonItems) {
+        if (m.collected) continue;
+        if (player.x < m.x + m.w && player.x + player.w > m.x &&
+            player.y < m.y + m.h && player.y + player.h > m.y) {
+            m.collected = true;
+            // 5秒間(300フレーム)の無敵時間を付与
+            player.invincible = 300;
+            score += 200;
+            spawnParticles(m.x + m.w / 2, m.y + m.h / 2, 12, '#fffacd');
+            updateHUD();
+        }
+    }
+}
+
+function drawMoonItems() {
+    for (const m of moonItems) {
+        const sx = m.x - camera.x;
+        const sy = m.y - camera.y;
+
+        if (sx < -40 || sx > canvas.width + 40) continue;
+
+        if (m.collected) {
+            // 収集アニメーション
+            ctx.save();
+            ctx.globalAlpha = 1 - m.collectAnim / 30;
+            ctx.fillStyle = '#fffacd';
+            ctx.font = 'bold 14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('★ 無敵！', sx + m.w / 2, sy - m.collectAnim);
+            ctx.restore();
+            continue;
+        }
+
+        ctx.save();
+        const glow = Math.sin((m.timer || 0) * 0.08) * 0.3 + 0.7;
+        ctx.globalAlpha = glow;
+
+        // 月の光彩
+        ctx.fillStyle = 'rgba(255, 250, 205, 0.3)';
+        ctx.beginPath();
+        ctx.arc(sx + m.w / 2, sy + m.h / 2, 18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 月本体（三日月風）
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(sx + m.w / 2, sy + m.h / 2, 10, 0, Math.PI * 2);
+        ctx.fill();
+        // 影で三日月にする
+        ctx.fillStyle = LEVELS[currentLevel].bgColor1;
+        ctx.beginPath();
+        ctx.arc(sx + m.w / 2 + 5, sy + m.h / 2 - 2, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+}
+
+// ============================================================
 // カメラ
 // ============================================================
 function updateCamera() {
@@ -1262,14 +1394,19 @@ function gameLoop() {
     checkCollisions();
     updateCamera();
 
+    // 月アイテム更新
+    updateMoonItems();
+    checkMoonCollisions();
+
     // 描画
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawBackground();
     drawDecorations();
+    drawGoalFlag();   // ゴールフラグを地面ブロックの背面に描画
     drawPlatforms();
-    drawGoalFlag();
 
     for (const c of coins) c.draw();
+    drawMoonItems();
     for (const e of enemies) e.draw();
     if (boss) boss.draw();
     player.draw();
